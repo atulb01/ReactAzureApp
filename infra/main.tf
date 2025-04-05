@@ -1,14 +1,30 @@
+terraform {
+  required_providers {
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = "~> 3.0"
+    }
+  }
+
+  required_version = ">= 1.1.0"
+}
+
+provider "azurerm" {
+  features {}
+}
+
 resource "azurerm_resource_group" "rg" {
-  name     = var.resource_group_name
-  location = var.location
+  name     = "react-rg"
+  location = "East US"
 }
 
 resource "azurerm_app_service_plan" "plan" {
-  name                = var.app_service_plan_name
+  name                = "react-appservice-plan"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
   kind                = "Linux"
   reserved            = true
+
   sku {
     tier = "Basic"
     size = "B1"
@@ -16,7 +32,7 @@ resource "azurerm_app_service_plan" "plan" {
 }
 
 resource "azurerm_app_service" "app" {
-  name                = var.app_name
+  name                = "react-app-${random_id.unique.hex}"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
   app_service_plan_id = azurerm_app_service_plan.plan.id
@@ -28,4 +44,8 @@ resource "azurerm_app_service" "app" {
   app_settings = {
     "WEBSITES_ENABLE_APP_SERVICE_STORAGE" = "false"
   }
+}
+
+resource "random_id" "unique" {
+  byte_length = 4
 }
