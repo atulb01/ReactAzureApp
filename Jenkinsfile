@@ -2,20 +2,23 @@ pipeline {
     agent any
 
     environment {
-        AZURE_CREDENTIALS = credentials('azure-sp-jenkins') // Add in Jenkins Credentials
+        ARM_CLIENT_ID       = credentials('AZURE_CREDENTIALS_CLIENT_ID')
+        ARM_CLIENT_SECRET   = credentials('AZURE_CREDENTIALS_CLIENT_SECRET')
+        ARM_SUBSCRIPTION_ID = credentials('AZURE_CREDENTIALS_SUBSCRIPTION_ID')
+        ARM_TENANT_ID       = credentials('AZURE_CREDENTIALS_TENANT_ID')
     }
 
     stages {
         stage('Checkout Code') {
             steps {
-                git branch: 'main', url: 'https://github.com/atulb01/ReactAzureApp.git'
+                git url: 'https://github.com/atulb01/ReactAzureApp.git', branch: 'main'
             }
         }
 
         stage('Terraform Init') {
             steps {
                 dir('infra') {
-                    sh 'terraform init'
+                    bat 'terraform init'
                 }
             }
         }
@@ -23,7 +26,7 @@ pipeline {
         stage('Terraform Plan') {
             steps {
                 dir('infra') {
-                    sh 'terraform plan -var-file=terraform.tfvars'
+                    bat 'terraform plan -out=tfplan'
                 }
             }
         }
@@ -31,34 +34,24 @@ pipeline {
         stage('Terraform Apply') {
             steps {
                 dir('infra') {
-                    sh 'terraform apply -auto-approve -var-file=terraform.tfvars'
+                    bat 'terraform apply -auto-approve tfplan'
                 }
             }
         }
 
         stage('Build React App') {
             steps {
-                sh 'npm install'
-                sh 'npm run build'
+                dir('react-frontend') {
+                    bat 'npm install'
+                    bat 'npm run build'
+                }
             }
         }
 
         stage('Deploy React App') {
             steps {
-                withCredentials([azureServicePrincipal(
-                    credentialsId: 'AZURE_CREDENTIALS_ID',
-                    subscriptionIdVariable: 'AZ_SUBSCRIPTION_ID',
-                    clientIdVariable: 'AZ_CLIENT_ID',
-                    clientSecretVariable: 'AZ_CLIENT_SECRET',
-                    tenantIdVariable: 'AZ_TENANT_ID'
-                )]) {
-                    sh '''
-                        az login --service-principal -u $AZ_CLIENT_ID -p $AZ_CLIENT_SECRET --tenant $AZ_TENANT_ID
-                        az webapp deployment source config-zip \
-                            --resource-group reactjs-rg \
-                            --name reactjs-app-service \
-                            --src build.zip
-                    '''
+                dir('react-frontend') {
+                    bat 'az webapp deploy --resource-group YOUR_RESOURCE_GROUP --name YOUR_WEBAPP_NAME --src-path build --type static'
                 }
             }
         }
