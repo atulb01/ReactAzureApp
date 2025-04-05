@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        AZURE_CREDENTIALS = credentials('AZURE_CREDENTIALS_ID') // Add in Jenkins Credentials
+        AZURE_CREDENTIALS = credentials('azure-sp-jenkins') // Add in Jenkins Credentials
     }
 
     stages {
