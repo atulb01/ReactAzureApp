@@ -4,6 +4,10 @@ terraform {
       source  = "hashicorp/azurerm"
       version = "~> 3.0"
     }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.0"
+    }
   }
 
   required_version = ">= 1.1.0"
@@ -11,6 +15,10 @@ terraform {
 
 provider "azurerm" {
   features {}
+}
+
+resource "random_id" "unique" {
+  byte_length = 4
 }
 
 resource "azurerm_resource_group" "rg" {
@@ -44,8 +52,4 @@ resource "azurerm_app_service" "app" {
   app_settings = {
     "WEBSITES_ENABLE_APP_SERVICE_STORAGE" = "false"
   }
-}
-
-resource "random_id" "unique" {
-  byte_length = 4
 }
