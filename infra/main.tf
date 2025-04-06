@@ -13,9 +13,6 @@ terraform {
   required_version = ">= 1.1.0"
 }
 
-provider "azurerm" {
-  features {}
-}
 
 resource "random_id" "unique" {
   byte_length = 4
