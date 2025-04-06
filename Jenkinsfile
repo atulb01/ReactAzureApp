@@ -2,7 +2,8 @@ pipeline {
     agent any
 
     environment {
-        REACT_APP_DIR = 'ReactAzureApp' // Adjust if your React app root folder is different
+        REACT_APP_DIR = 'ReactAzureApp' // Adjust if this is different
+        BUILD_ZIP = 'build.zip'
     }
 
     stages {
@@ -41,7 +42,8 @@ pipeline {
                 dir("${env.REACT_APP_DIR}") {
                     bat 'npm install'
                     bat 'npm run build'
-                    bat 'powershell -Command "Compress-Archive -Path build\\* -DestinationPath ..\\build.zip -Force"'
+                    // Zip the contents of the build folder and move the zip to the workspace root
+                    bat "powershell -Command \"Compress-Archive -Path build\\* -DestinationPath ..\\${env.BUILD_ZIP} -Force\""
                 }
             }
         }
@@ -55,13 +57,13 @@ pipeline {
                     clientSecretVariable: 'AZ_CLIENT_SECRET',
                     tenantIdVariable: 'AZ_TENANT_ID'
                 )]) {
-                    bat '''
+                    bat """
                     az login --service-principal -u %AZ_CLIENT_ID% -p %AZ_CLIENT_SECRET% --tenant %AZ_TENANT_ID%
                     az webapp deployment source config-zip ^
                         --resource-group reactjs-rg ^
                         --name reactjs-app-service ^
-                        --src build.zip
-                    '''
+                        --src ${env.BUILD_ZIP}
+                    """
                 }
             }
         }
