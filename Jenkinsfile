@@ -1,10 +1,6 @@
 pipeline {
     agent any
 
-    environment {
-        AZURE_CREDENTIALS = credentials('azure-sp-jenkins') // This can be removed if using withCredentials block instead
-    }
-
     stages {
         stage('Checkout Code') {
             steps {
@@ -40,8 +36,8 @@ pipeline {
             steps {
                 bat 'npm install'
                 bat 'npm run build'
-                // Create zip from build folder
-                bat 'powershell Compress-Archive -Path build\\* -DestinationPath build.zip'
+                // Create zip from build folder, force overwrite if it exists
+                bat 'powershell Compress-Archive -Path build\\* -DestinationPath build.zip -Force'
             }
         }
 
