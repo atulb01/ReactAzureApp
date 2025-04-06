@@ -37,16 +37,20 @@ pipeline {
             }
         }
 
-        stage('Build React App') {
-            steps {
-                dir("${env.REACT_APP_DIR}") {
-                    bat 'npm install'
-                    bat 'npm run build'
-                    // Zip the contents of the build folder and move the zip to the workspace root
-                    bat "powershell -Command \"Compress-Archive -Path build\\* -DestinationPath ..\\${env.BUILD_ZIP} -Force\""
-                }
-            }
+       stage('Build React App') {
+    steps {
+        dir('ReactAzureApp') {
+            bat 'npm install'
+            bat 'npm run build'
+
+            // Safely compress the build folder using a full path to avoid path resolution issues
+            bat """
+                powershell -Command "Compress-Archive -Path 'C:\\ProgramData\\Jenkins\\.jenkins\\workspace\\react-azure-deploy\\ReactAzureApp\\build\\*' -DestinationPath 'C:\\ProgramData\\Jenkins\\.jenkins\\workspace\\react-azure-deploy\\build.zip' -Force"
+            """
         }
+    }
+}
+
 
         stage('Deploy React App') {
             steps {
