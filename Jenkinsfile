@@ -48,7 +48,7 @@ pipeline {
         stage('Deploy React App') {
             steps {
                 withCredentials([azureServicePrincipal(
-                    credentialsId: 'AZURE_CREDENTIALS_ID',
+                    credentialsId: 'azure-sp-jenkins',
                     subscriptionIdVariable: 'AZ_SUBSCRIPTION_ID',
                     clientIdVariable: 'AZ_CLIENT_ID',
                     clientSecretVariable: 'AZ_CLIENT_SECRET',
