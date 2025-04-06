@@ -1,39 +1,80 @@
-stage('Build React App') {
-    steps {
-        dir("${REACT_APP_DIR}") {
-            bat 'npm install'
-            bat 'npm run build'
+pipeline {
+    agent any
+
+    environment {
+        REACT_APP_DIR = 'ReactAzureApp'
+        BUILD_ZIP = 'build.zip'
+    }
+
+    stages {
+        stage('Checkout Code') {
+            steps {
+                git branch: 'main', url: 'https://github.com/atulb01/ReactAzureApp.git'
+            }
         }
 
-        // Check if build folder exists
-        bat "dir ${REACT_APP_DIR}\\build"
+        stage('Terraform Init') {
+            steps {
+                dir('infra') {
+                    bat 'terraform init'
+                }
+            }
+        }
 
-        // Compress build folder contents
-        bat """
-            powershell -Command "Compress-Archive -Path '${env.WORKSPACE}\\${REACT_APP_DIR}\\build\\*' -DestinationPath '${env.WORKSPACE}\\${BUILD_ZIP}' -Force"
-        """
+        stage('Terraform Plan') {
+            steps {
+                dir('infra') {
+                    bat 'terraform plan -var-file=terraform.tfvars'
+                }
+            }
+        }
 
-        // Confirm zip file was created
-        bat "dir ${env.BUILD_ZIP}"
-    }
-}
+        stage('Terraform Apply') {
+            steps {
+                dir('infra') {
+                    bat 'terraform apply -auto-approve -var-file=terraform.tfvars'
+                }
+            }
+        }
 
-stage('Deploy React App') {
-    steps {
-        withCredentials([azureServicePrincipal(
-            credentialsId: 'azure-sp-jenkins',
-            subscriptionIdVariable: 'AZ_SUBSCRIPTION_ID',
-            clientIdVariable: 'AZ_CLIENT_ID',
-            clientSecretVariable: 'AZ_CLIENT_SECRET',
-            tenantIdVariable: 'AZ_TENANT_ID'
-        )]) {
-            bat """
-                az login --service-principal -u %AZ_CLIENT_ID% -p %AZ_CLIENT_SECRET% --tenant %AZ_TENANT_ID%
-                az webapp deployment source config-zip ^
-                    --resource-group reactjs-rg ^
-                    --name reactjs-app-service ^
-                    --src ${env.BUILD_ZIP}
-            """
+        stage('Build React App') {
+            steps {
+                dir("${env.REACT_APP_DIR}") {
+                    bat 'npm install'
+                    bat 'npm run build'
+                }
+
+                // Confirm build directory exists
+                bat "dir ${env.REACT_APP_DIR}\\build"
+
+                // Compress build folder
+                bat """
+                    powershell -Command "Compress-Archive -Path '${env.WORKSPACE}\\${env.REACT_APP_DIR}\\build\\*' -DestinationPath '${env.WORKSPACE}\\${env.BUILD_ZIP}' -Force"
+                """
+
+                // Confirm zip file created
+                bat "dir ${env.BUILD_ZIP}"
+            }
+        }
+
+        stage('Deploy React App') {
+            steps {
+                withCredentials([azureServicePrincipal(
+                    credentialsId: 'azure-sp-jenkins',
+                    subscriptionIdVariable: 'AZ_SUBSCRIPTION_ID',
+                    clientIdVariable: 'AZ_CLIENT_ID',
+                    clientSecretVariable: 'AZ_CLIENT_SECRET',
+                    tenantIdVariable: 'AZ_TENANT_ID'
+                )]) {
+                    bat """
+                        az login --service-principal -u %AZ_CLIENT_ID% -p %AZ_CLIENT_SECRET% --tenant %AZ_TENANT_ID%
+                        az webapp deployment source config-zip ^
+                            --resource-group reactjs-rg ^
+                            --name reactjs-app-service ^
+                            --src ${env.WORKSPACE}\\${env.BUILD_ZIP}
+                    """
+                }
+            }
         }
     }
 }
