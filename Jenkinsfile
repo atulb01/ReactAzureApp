@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        REACT_APP_DIR = 'ReactAzureApp' // Adjust if this is different
+        REACT_APP_DIR = 'ReactAzureApp'
         BUILD_ZIP = 'build.zip'
     }
 
@@ -37,20 +37,20 @@ pipeline {
             }
         }
 
-       stage('Build React App') {
-    steps {
-        dir('ReactAzureApp') {
-            bat 'npm install'
-            bat 'npm run build'
+        stage('Build React App') {
+            steps {
+                dir("${REACT_APP_DIR}") {
+                    bat 'npm install'
+                    bat 'npm run build'
+                }
 
-            // Safely compress the build folder using a full path to avoid path resolution issues
-            bat """
-                powershell -Command "Compress-Archive -Path 'C:\\ProgramData\\Jenkins\\.jenkins\\workspace\\react-azure-deploy\\ReactAzureApp\\build\\*' -DestinationPath 'C:\\ProgramData\\Jenkins\\.jenkins\\workspace\\react-azure-deploy\\build.zip' -Force"
-            """
+                // Safely compress the build directory after exiting React dir
+                // This avoids wildcard issues
+                bat """
+                    powershell -Command "Compress-Archive -Path '${env.WORKSPACE}\\${REACT_APP_DIR}\\build' -DestinationPath '${env.WORKSPACE}\\${BUILD_ZIP}' -Force"
+                """
+            }
         }
-    }
-}
-
 
         stage('Deploy React App') {
             steps {
@@ -62,11 +62,11 @@ pipeline {
                     tenantIdVariable: 'AZ_TENANT_ID'
                 )]) {
                     bat """
-                    az login --service-principal -u %AZ_CLIENT_ID% -p %AZ_CLIENT_SECRET% --tenant %AZ_TENANT_ID%
-                    az webapp deployment source config-zip ^
-                        --resource-group reactjs-rg ^
-                        --name reactjs-app-service ^
-                        --src ${env.BUILD_ZIP}
+                        az login --service-principal -u %AZ_CLIENT_ID% -p %AZ_CLIENT_SECRET% --tenant %AZ_TENANT_ID%
+                        az webapp deployment source config-zip ^
+                            --resource-group reactjs-rg ^
+                            --name reactjs-app-service ^
+                            --src ${env.BUILD_ZIP}
                     """
                 }
             }
