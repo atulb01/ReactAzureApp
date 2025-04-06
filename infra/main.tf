@@ -22,12 +22,12 @@ resource "random_id" "unique" {
 }
 
 resource "azurerm_resource_group" "rg" {
-  name     = "react-rg"
+  name     = "react-rg-${random_id.unique.hex}"
   location = "East US"
 }
 
 resource "azurerm_app_service_plan" "plan" {
-  name                = "react-appservice-plan"
+  name                = "react-appservice-plan-${random_id.unique.hex}"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
   kind                = "Linux"
