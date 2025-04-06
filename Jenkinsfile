@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    environment {
+        REACT_APP_DIR = 'ReactAzureApp' // Adjust if your React app root folder is different
+    }
+
     stages {
         stage('Checkout Code') {
             steps {
@@ -34,10 +38,11 @@ pipeline {
 
         stage('Build React App') {
             steps {
-                bat 'npm install'
-                bat 'npm run build'
-                // Create zip from build folder, force overwrite if it exists
-                bat 'powershell Compress-Archive -Path build\\* -DestinationPath build.zip -Force'
+                dir("${env.REACT_APP_DIR}") {
+                    bat 'npm install'
+                    bat 'npm run build'
+                    bat 'powershell -Command "Compress-Archive -Path build\\* -DestinationPath ..\\build.zip -Force"'
+                }
             }
         }
 
